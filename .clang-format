@@ -1,0 +1,36 @@
+---
+Language: Cpp
+BasedOnStyle: Google
+ColumnLimit: 79
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+# SpaceBeforeCpp11BracedList: true
+# Cpp11BracedListStyle: false
+IndentCaseLabels: false
+# AllowShortCaseLabelsOnASingleLine: true
+IndentAccessModifiers: false
+AccessModifierOffset: -4
+AlignAfterOpenBracket: BlockIndent
+AllowAllArgumentsOnNextLine: false
+AlignOperands: AlignAfterOperator
+AllowShortBlocksOnASingleLine: Never
+AllowShortEnumsOnASingleLine: false
+AllowShortCaseLabelsOnASingleLine: false
+AllowShortFunctionsOnASingleLine: None
+AllowShortLambdasOnASingleLine: None
+AllowShortIfStatementsOnASingleLine: Never
+BreakBeforeBinaryOperators: All
+BreakBeforeBraces: Custom
+BraceWrapping:
+  AfterControlStatement: MultiLine
+BreakBeforeTernaryOperators: true
+# BreakConstructorInitializers: AfterColon
+# BreakInheritanceList: AfterColon
+InsertBraces: true
+RemoveParentheses: MultipleParentheses
+MaxEmptyLinesToKeep: 1
+PackConstructorInitializers: CurrentLine
+RemoveSemicolon: true
+SeparateDefinitionBlocks: Always
+...
