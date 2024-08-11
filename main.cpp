@@ -56,7 +56,7 @@ std::optional<std::span<std::byte>> row_slot(Table& table, size_t row_num) {
     }
 
     auto offset = (row_num % ROWS_PER_PAGE) * ROW_SIZE;
-    return std::span{page->data() + offset, PAGE_SIZE};
+    return std::span{page->data() + offset, ROW_SIZE};
 }
 
 void serialize_row(const Row& src, std::span<std::byte> dest) {
