@@ -6,6 +6,7 @@
 #include <memory>
 #include <optional>
 #include <span>
+#include <utility>
 
 constexpr uint32_t PAGE_SIZE = 4096;
 constexpr uint32_t MAX_PAGES = 100;
@@ -18,12 +19,17 @@ constexpr uint32_t ROW_SIZE = SIZE_ID + SIZE_USERNAME + SIZE_EMAIL;
 constexpr uint32_t ROWS_PER_PAGE = PAGE_SIZE / ROW_SIZE;
 constexpr uint32_t MAX_ROWS = ROWS_PER_PAGE * MAX_PAGES;
 
+template <typename T, typename U>
+using WithError = std::pair<T, std::optional<U>>;
+
 struct Row {
     uint32_t id{};
     std::array<char, SIZE_USERNAME> username{};
     std::array<char, SIZE_EMAIL> email{};
 
-    void serialize(std::span<std::byte> dest) {
+    void serialize(std::span<char> dest) {
+        assert(dest.size() == ROW_SIZE);
+
         std::memcpy(dest.data(), &this->id, SIZE_ID);
 
         auto username_span = dest.subspan(SIZE_ID, SIZE_USERNAME);
@@ -35,7 +41,9 @@ struct Row {
         std::memcpy(email_span.data(), this->email.data(), SIZE_EMAIL);
     }
 
-    void deserialize(std::span<std::byte> src) {
+    void deserialize(std::span<char> src) {
+        assert(src.size() == ROW_SIZE);
+
         std::memcpy(&this->id, src.data(), SIZE_ID);
 
         auto username_span = src.subspan(SIZE_ID, SIZE_USERNAME);
@@ -58,6 +66,12 @@ struct Statement {
     Row row_to_insert{};
 };
 
+using Page = std::array<char, PAGE_SIZE>;
+
+enum class PagerError {
+    OUT_OF_RANGE,
+};
+
 class Table {
 public:
     void exec(Statement&& statement) {
@@ -67,8 +81,8 @@ public:
 
             Row row{};
             for (size_t idx{0}; idx < num_rows; idx++) {
-                const auto slot_opt{find_slot(idx)};
-                if (auto slot{*slot_opt}; slot_opt) {
+                const auto [slot, err]{find_slot(idx)};
+                if (not err) {
                     row.deserialize(slot);
                     std::cout << std::format(
                         "{}|{}|{}\n", row.id, row.username.data(),
@@ -86,8 +100,8 @@ public:
                 return;
             }
 
-            const auto slot_opt{find_slot(num_rows)};
-            if (auto slot{*slot_opt}; slot_opt) {
+            const auto [slot, err]{find_slot(num_rows)};
+            if (not err) {
                 auto& row{statement.row_to_insert};
                 std::cout << std::format(
                     "{}|{}|{}\n", row.id, row.username.data(), row.email.data()
@@ -102,24 +116,24 @@ public:
 
 private:
     size_t num_rows{};
-    std::array<std::optional<std::array<std::byte, PAGE_SIZE>>, MAX_PAGES>
-        pages{};
+    std::array<std::optional<Page>, MAX_PAGES> pages{};
 
-    std::optional<std::span<std::byte>> find_slot(size_t row_num) {
+    auto find_slot(size_t row_num) -> WithError<std::span<char>, PagerError> {
         auto page_num{row_num / ROWS_PER_PAGE};
 
         if (page_num >= MAX_PAGES) {
-            return std::nullopt;
+            return {std::span<char>{}, PagerError::OUT_OF_RANGE};
         }
         assert(page_num < MAX_PAGES);
 
         auto& page = pages[page_num];
         if (!page) {
-            page = std::array<std::byte, PAGE_SIZE>{};
+            page = Page{};
         }
 
         auto offset = (row_num % ROWS_PER_PAGE) * ROW_SIZE;
-        return std::span{page->data() + offset, ROW_SIZE};
+        auto page_span = std::span<char>{*page};
+        return {page_span.subspan(offset, ROW_SIZE), std::nullopt};
     }
 };
 
