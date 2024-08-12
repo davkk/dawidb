@@ -3,7 +3,6 @@
 #include <cstring>
 #include <format>
 #include <iostream>
-#include <memory>
 #include <optional>
 #include <span>
 #include <utility>
@@ -12,8 +11,11 @@ constexpr uint32_t PAGE_SIZE = 4096;
 constexpr uint32_t MAX_PAGES = 100;
 
 constexpr uint32_t SIZE_ID = sizeof(uint32_t);
+constexpr uint32_t OFFSET_ID = 0;
 constexpr uint32_t SIZE_USERNAME = 32;
+constexpr uint32_t OFFSET_USERNAME = SIZE_ID;
 constexpr uint32_t SIZE_EMAIL = 255;
+constexpr uint32_t OFFSET_EMAIL = SIZE_ID + SIZE_USERNAME;
 
 constexpr uint32_t ROW_SIZE = SIZE_ID + SIZE_USERNAME + SIZE_EMAIL;
 constexpr uint32_t ROWS_PER_PAGE = PAGE_SIZE / ROW_SIZE;
@@ -27,32 +29,38 @@ struct Row {
     std::array<char, SIZE_USERNAME> username{};
     std::array<char, SIZE_EMAIL> email{};
 
-    void serialize(std::span<char> dest) {
+    void serialize(const std::span<char> dest) {
         assert(dest.size() == ROW_SIZE);
+        std::span<char> span{};
 
-        std::memcpy(dest.data(), &this->id, SIZE_ID);
+        span = dest.subspan(OFFSET_ID, SIZE_ID);
+        assert(span.size() == SIZE_ID);
+        std::memcpy(span.data(), &id, SIZE_ID);
 
-        auto username_span = dest.subspan(SIZE_ID, SIZE_USERNAME);
-        std::memcpy(
-            username_span.data(), this->username.data(), SIZE_USERNAME
-        );
+        span = dest.subspan(OFFSET_USERNAME, SIZE_USERNAME);
+        assert(span.size() == SIZE_USERNAME);
+        std::copy(username.begin(), username.end(), span.begin());
 
-        auto email_span = dest.subspan(SIZE_ID + SIZE_USERNAME, SIZE_EMAIL);
-        std::memcpy(email_span.data(), this->email.data(), SIZE_EMAIL);
+        span = dest.subspan(OFFSET_EMAIL, SIZE_EMAIL);
+        assert(span.size() == SIZE_EMAIL);
+        std::copy(email.begin(), email.end(), span.begin());
     }
 
-    void deserialize(std::span<char> src) {
+    void deserialize(const std::span<char> src) {
         assert(src.size() == ROW_SIZE);
+        std::span<char> span{};
 
-        std::memcpy(&this->id, src.data(), SIZE_ID);
+        span = src.subspan(OFFSET_ID, SIZE_ID);
+        assert(span.size() == SIZE_ID);
+        std::memcpy(&id, span.data(), SIZE_ID);
 
-        auto username_span = src.subspan(SIZE_ID, SIZE_USERNAME);
-        std::memcpy(
-            this->username.data(), username_span.data(), SIZE_USERNAME
-        );
+        span = src.subspan(OFFSET_USERNAME, SIZE_USERNAME);
+        assert(span.size() == SIZE_USERNAME);
+        std::copy(span.begin(), span.end(), username.begin());
 
-        auto email_span = src.subspan(SIZE_ID + SIZE_USERNAME, SIZE_EMAIL);
-        std::memcpy(this->email.data(), email_span.data(), SIZE_EMAIL);
+        span = src.subspan(OFFSET_EMAIL, SIZE_EMAIL);
+        assert(span.size() == SIZE_EMAIL);
+        std::copy(span.begin(), span.end(), email.begin());
     }
 };
 
