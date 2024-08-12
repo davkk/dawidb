@@ -21,8 +21,8 @@ constexpr uint32_t ROW_SIZE = SIZE_ID + SIZE_USERNAME + SIZE_EMAIL;
 constexpr uint32_t ROWS_PER_PAGE = PAGE_SIZE / ROW_SIZE;
 constexpr uint32_t MAX_ROWS = ROWS_PER_PAGE * MAX_PAGES;
 
-template <typename T, typename U>
-using WithError = std::pair<T, std::optional<U>>;
+template <typename Type, typename Error>
+using WithError = std::pair<Type, std::optional<Error>>;
 
 struct Row {
     uint32_t id{};
