@@ -3,9 +3,7 @@
 #include <cstring>
 #include <format>
 #include <iostream>
-#include <optional>
 #include <span>
-#include <utility>
 
 constexpr uint32_t PAGE_SIZE = 4096;
 constexpr uint32_t MAX_PAGES = 100;
@@ -25,13 +23,13 @@ template <typename Type, typename Error>
 using WithError = std::pair<Type, std::optional<Error>>;
 
 struct Row {
-    uint32_t id{};
-    std::array<char, SIZE_USERNAME> username{};
-    std::array<char, SIZE_EMAIL> email{};
+    uint32_t id;
+    std::array<char, SIZE_USERNAME> username;
+    std::array<char, SIZE_EMAIL> email;
 
-    void serialize(const std::span<char> dest) {
+    void serialize_into(const std::span<char> dest) {
         assert(dest.size() == ROW_SIZE);
-        std::span<char> span{};
+        std::span<char> span;
 
         span = dest.subspan(OFFSET_ID, SIZE_ID);
         assert(span.size() == SIZE_ID);
@@ -46,9 +44,9 @@ struct Row {
         std::copy(email.begin(), email.end(), span.begin());
     }
 
-    void deserialize(const std::span<char> src) {
+    void deserialize_from(const std::span<char> src) {
         assert(src.size() == ROW_SIZE);
-        std::span<char> span{};
+        std::span<char> span;
 
         span = src.subspan(OFFSET_ID, SIZE_ID);
         assert(span.size() == SIZE_ID);
@@ -70,8 +68,8 @@ enum class StatementType {
 };
 
 struct Statement {
-    StatementType type{};
-    Row row_to_insert{};
+    StatementType type;
+    Row row_to_insert;
 };
 
 using Page = std::array<char, PAGE_SIZE>;
@@ -85,13 +83,15 @@ public:
     void exec(Statement&& statement) {
         switch (statement.type) {
         case StatementType::SELECT: {
+            std::cout << pages[0].data() << std::endl;
             std::cout << "\nselect statement\n";
 
             Row row{};
+
             for (size_t idx{0}; idx < num_rows; idx++) {
                 const auto [slot, err]{find_slot(idx)};
                 if (not err) {
-                    row.deserialize(slot);
+                    row.deserialize_from(slot);
                     std::cout << std::format(
                         "{}|{}|{}\n", row.id, row.username.data(),
                         row.email.data()
@@ -99,7 +99,7 @@ public:
                 }
             }
 
-            break;
+            return;
         }
         case StatementType::INSERT: {
             std::cout << "\ninsert statement\n";
@@ -114,34 +114,32 @@ public:
                 std::cout << std::format(
                     "{}|{}|{}\n", row.id, row.username.data(), row.email.data()
                 );
-                row.serialize(slot);
+                row.serialize_into(slot);
                 num_rows++;
             }
-            break;
+
+            return;
         }
         }
     }
 
 private:
-    size_t num_rows{};
-    std::array<std::optional<Page>, MAX_PAGES> pages{};
+    size_t num_rows{0};
+    std::array<Page, MAX_PAGES> pages{};
 
     auto find_slot(size_t row_num) -> WithError<std::span<char>, PagerError> {
         auto page_num{row_num / ROWS_PER_PAGE};
 
         if (page_num >= MAX_PAGES) {
-            return {std::span<char>{}, PagerError::OUT_OF_RANGE};
-        }
-        assert(page_num < MAX_PAGES);
-
-        auto& page = pages[page_num];
-        if (!page) {
-            page = Page{};
+            return {{}, PagerError::OUT_OF_RANGE};
         }
 
         auto offset = (row_num % ROWS_PER_PAGE) * ROW_SIZE;
-        auto page_span = std::span<char>{*page};
-        return {page_span.subspan(offset, ROW_SIZE), std::nullopt};
+
+        assert(page_num < pages.size());
+        assert(offset < pages[page_num].size());
+
+        return {{&pages[page_num][offset], ROW_SIZE}, std::nullopt};
     }
 };
 
