@@ -13,6 +13,8 @@ IndentAccessModifiers: false
 AccessModifierOffset: -4
 AlignAfterOpenBracket: BlockIndent
 AllowAllArgumentsOnNextLine: false
+AllowAllParametersOfDeclarationOnNextLine: false
+PenaltyReturnTypeOnItsOwnLine: 1000
 AlignOperands: AlignAfterOperator
 AllowShortBlocksOnASingleLine: Never
 AllowShortEnumsOnASingleLine: false
@@ -22,6 +24,8 @@ AllowShortLambdasOnASingleLine: None
 AllowShortIfStatementsOnASingleLine: Never
 BreakBeforeBinaryOperators: All
 BreakBeforeBraces: Custom
+BinPackArguments: false
+BinPackParameters: false
 BraceWrapping:
   AfterControlStatement: MultiLine
 BreakBeforeTernaryOperators: true
