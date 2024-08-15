@@ -2,22 +2,20 @@
 
 #include <cassert>
 #include <cstdio>
+#include <iostream>
 #include <print>
 
 #include "const.hpp"
 #include "pager.hpp"
 #include "row.hpp"
 
-constexpr void handle_pager_error(PagerError err) {
-    switch (err) {
-    case PagerError::OUT_OF_BOUNDS:
-        std::println(stderr, "[!] page read out of bounds");
+constexpr void handle_pager_error(const PagerError& err) {
+    std::cerr << std::format("{}\n", err.message);
+    switch (err.code) {
+    case PagerErrorCode::OUT_OF_BOUNDS:
         return;
-    case PagerError::READ_FAILED:
-        std::println(stderr, "[!] failed to read from file");
-        std::abort();
-    case PagerError::WRITE_FAILED:
-        std::println(stderr, "[!] failed to write to file");
+    case PagerErrorCode::READ_FAILED:
+    case PagerErrorCode::WRITE_FAILED:
         std::abort();
     }
 }
@@ -64,7 +62,10 @@ void Table::exec(Statement&& statement) {
 
             row.deserialize_from(slot);
             std::println(
-                "{}|{}|{}", row.id, row.username.data(), row.email.data()
+                "{}|{}|{}",
+                row.id,
+                row.username.data(),
+                row.email.data()
             );
         }
 
@@ -84,7 +85,10 @@ void Table::exec(Statement&& statement) {
 
         auto& row{statement.row_to_insert};
         std::println(
-            "{}|{}|{}", row.id, row.username.data(), row.email.data()
+            "{}|{}|{}",
+            row.id,
+            row.username.data(),
+            row.email.data()
         );
         row.serialize_into(slot);
         num_rows++;

@@ -9,7 +9,7 @@
 
 constexpr auto file_mode{std::ios::binary | std::ios::out | std::ios::in};
 
-Pager::Pager(std::string&& file_name) : file{file_name, file_mode} {
+Pager::Pager(std::string &&file_name) : file{file_name, file_mode} {
     if (!file.is_open()) {
         std::ofstream file_new{file_name};
         file_new.close();
@@ -27,15 +27,18 @@ Pager::Pager(std::string&& file_name) : file{file_name, file_mode} {
 
     if (file.fail()) {
         std::println(
-            stderr, "[!] error while opening file: {:b}", file.rdstate()
+            stderr,
+            "[!] error while opening file: {:b}",
+            file.rdstate()
         );
     }
 }
 
 std::optional<PagerError> Pager::write_page(
-    const size_t page_num, const int64_t write_size
+    const size_t page_num,
+    const int64_t write_size
 ) {
-    const auto& page{pages[page_num]};
+    const auto &page{pages[page_num]};
     if (page) {
         auto file_pos{static_cast<int64_t>(page_num * PAGE_SIZE)};
         assert(file_pos < MAX_PAGES * PAGE_SIZE);
@@ -44,7 +47,10 @@ std::optional<PagerError> Pager::write_page(
         file.write(page.get(), write_size);
 
         if (file.fail()) {
-            return PagerError::WRITE_FAILED;
+            return PagerError{
+                "failed to write to file",
+                PagerErrorCode::WRITE_FAILED
+            };
         }
     }
 
@@ -54,10 +60,16 @@ std::optional<PagerError> Pager::write_page(
 WithError<std::span<char>, PagerError> Pager::find_slot(size_t row_num) {
     auto page_num{row_num / ROWS_PER_PAGE};
     if (page_num >= MAX_PAGES) {
-        return {{}, PagerError::OUT_OF_BOUNDS};
+        return {
+            {},
+            PagerError{
+                "page read out of bounds",
+                PagerErrorCode::OUT_OF_BOUNDS
+            }
+        };
     }
 
-    auto& page = pages[page_num];
+    auto &page = pages[page_num];
     if (!page) {
         page = std::make_unique<Page>(PAGE_SIZE);
         auto num_pages{file_length / PAGE_SIZE};
@@ -77,7 +89,13 @@ WithError<std::span<char>, PagerError> Pager::find_slot(size_t row_num) {
             }
 
             if (file.fail()) {
-                return {{}, PagerError::READ_FAILED};
+                return {
+                    {},
+                    PagerError{
+                        "failed to read from file",
+                        PagerErrorCode::READ_FAILED
+                    }
+                };
             }
         }
     }

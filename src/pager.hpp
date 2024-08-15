@@ -8,10 +8,15 @@
 
 using Page = char[];
 
-enum class PagerError {
+enum PagerErrorCode {
     OUT_OF_BOUNDS,
     READ_FAILED,
     WRITE_FAILED,
+};
+
+struct PagerError {
+    std::string_view message;
+    PagerErrorCode code;
 };
 
 struct Pager {
