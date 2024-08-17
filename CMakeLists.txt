@@ -20,7 +20,12 @@ project(dawidb VERSION 0.1)
 
 add_executable(dawidb main.cpp)
 
+include(CTest)
+
+add_subdirectory(external)
+add_subdirectory(tests)
 add_subdirectory(src)
+
 target_link_libraries(dawidb src)
 
 add_custom_target(
