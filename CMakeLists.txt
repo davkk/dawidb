@@ -26,7 +26,7 @@ add_subdirectory(external)
 add_subdirectory(tests)
 add_subdirectory(src)
 
-target_link_libraries(dawidb src)
+target_link_libraries(dawidb dawidb_lib)
 
 add_custom_target(
     run

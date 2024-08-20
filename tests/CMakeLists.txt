@@ -9,9 +9,12 @@ file(
 
 add_executable(dawidb_test ${SOURCES})
 
-target_link_libraries(dawidb_test GTest::gtest_main)
-
-target_include_directories(dawidb_test PRIVATE "${PROJECT_SOURCE_DIR}/src")
+target_link_libraries(
+    dawidb_test
+    dawidb_lib
+    GTest::gtest_main
+    GTest::gmock_main
+)
 
 include(GoogleTest)
 gtest_discover_tests(dawidb_test)

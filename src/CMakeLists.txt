@@ -1,2 +1,9 @@
-add_library(src STATIC table.cpp pager.cpp row.cpp parser.cpp)
-target_include_directories(src PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+file(
+    GLOB SOURCES
+    CONFIGURE_DEPENDS
+    ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/**/*.cpp
+)
+
+add_library(dawidb_lib STATIC ${SOURCES})
+target_include_directories(dawidb_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
