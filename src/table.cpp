@@ -21,11 +21,16 @@ constexpr void handle_pager_error(const PagerError& err) {
 }
 
 Table::Table(std::fstream& file) : pager{file} {
+    assert(file.is_open());
     num_rows = pager.file_length / ROW_SIZE;
 }
 
 Table::~Table() {
+    assert(num_rows >= 0);
+
     auto num_full_pages = num_rows / ROWS_PER_PAGE;
+    assert(num_full_pages <= MAX_PAGES);
+
     for (size_t page_num{0}; page_num < num_full_pages; page_num++) {
         auto err{pager.write_page(page_num, PAGE_SIZE)};
         if (err) {
@@ -59,6 +64,7 @@ void Table::exec(Statement&& statement) {
             if (err) {
                 handle_pager_error(*err);
             }
+            assert(slot.size() == ROW_SIZE);
 
             row.deserialize_from(slot);
             std::println(
@@ -74,7 +80,8 @@ void Table::exec(Statement&& statement) {
     case StatementType::INSERT: {
         std::println("=== insert statement ===");
 
-        if (num_rows == MAX_ROWS) {
+        if (num_rows >= MAX_ROWS) {
+            std::println(stderr, "[!] max num of rows {} reached", MAX_ROWS);
             return;
         }
 
@@ -82,6 +89,7 @@ void Table::exec(Statement&& statement) {
         if (err) {
             handle_pager_error(*err);
         }
+        assert(slot.size() == ROW_SIZE);
 
         auto& row{statement.row_to_insert};
         std::println(
