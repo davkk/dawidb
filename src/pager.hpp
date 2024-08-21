@@ -20,11 +20,11 @@ struct PagerError {
 };
 
 struct Pager {
-    std::fstream file;
+    std::fstream &file;
     size_t file_length{0};
     std::array<std::unique_ptr<Page>, MAX_PAGES> pages{};
 
-    explicit Pager(std::string &&file_name);
+    explicit Pager(std::fstream &file);
     Pager(const Pager &) = delete;
     Pager(Pager &&) = delete;
     Pager &operator=(const Pager &) = delete;

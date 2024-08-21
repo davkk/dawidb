@@ -7,7 +7,7 @@ struct Table {
     size_t num_rows;
     Pager pager;
 
-    explicit Table(std::string&& file_name);
+    explicit Table(std::fstream& file);
     ~Table();
 
     void exec(Statement&& statement);

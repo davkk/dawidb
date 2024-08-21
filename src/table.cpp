@@ -20,7 +20,7 @@ constexpr void handle_pager_error(const PagerError& err) {
     }
 }
 
-Table::Table(std::string&& file_name) : pager{std::move(file_name)} {
+Table::Table(std::fstream& file) : pager{file} {
     num_rows = pager.file_length / ROW_SIZE;
 }
 

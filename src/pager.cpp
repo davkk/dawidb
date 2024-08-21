@@ -7,16 +7,7 @@
 
 #include "const.hpp"
 
-constexpr auto file_mode{std::ios::binary | std::ios::out | std::ios::in};
-
-Pager::Pager(std::string &&file_name) : file{file_name, file_mode} {
-    if (!file.is_open()) {
-        std::ofstream file_new{file_name};
-        file_new.close();
-
-        file.open(file_name, file_mode);
-    }
-
+Pager::Pager(std::fstream &file) : file{file} {
     file.seekp(0, std::ios::end);
 
     auto file_pos{file.tellg()};
@@ -24,14 +15,6 @@ Pager::Pager(std::string &&file_name) : file{file_name, file_mode} {
     file_length = static_cast<size_t>(file_pos);
 
     file.seekp(0);
-
-    if (file.fail()) {
-        std::println(
-            stderr,
-            "[!] error while opening file: {:b}",
-            file.rdstate()
-        );
-    }
 }
 
 std::optional<PagerError> Pager::write_page(
