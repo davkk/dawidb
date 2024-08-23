@@ -1,14 +1,13 @@
+#include <format>
 #include <fstream>
 
+#include "const.hpp"
 #include "table.hpp"
 
 int main() {
     constexpr auto file_mode{std::ios::binary | std::ios::out | std::ios::in};
     const std::string file_name{"database"};
 
-<<<<<<< Updated upstream
-    table.exec({StatementType::INSERT, {1, {"hello"}, {"world"}}});
-=======
     std::fstream file{file_name, file_mode};
 
     if (!file.is_open()) {
@@ -20,8 +19,17 @@ int main() {
 
     Table table{file};
 
-    table.exec({StatementType::INSERT, {420, {"username"}, {"email"}}});
->>>>>>> Stashed changes
+    for (uint32_t idx{1}; idx <= ROWS_PER_PAGE + 1; idx++) {
+        std::string username = std::format("hello{}", idx);
+        std::string email = std::format("world{}", idx);
+
+        Row row{};
+        std::copy(username.begin(), username.end(), row.username.begin());
+        std::copy(email.begin(), email.end(), row.email.begin());
+
+        table.exec({StatementType::INSERT, {idx, row.username, row.email}});
+    }
+
     table.exec({StatementType::SELECT});
 
     return 0;

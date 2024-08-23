@@ -23,8 +23,8 @@ std::optional<PagerError> Pager::write_page(
     const size_t page_num,
     const int64_t write_size
 ) {
-    assert(page_num < MAX_PAGES);
-    assert(write_size < PAGE_SIZE);
+    assert(page_num <= MAX_PAGES);
+    assert(write_size <= PAGE_SIZE);
 
     const auto &page{pages[page_num]};
     if (page) {
@@ -46,8 +46,6 @@ std::optional<PagerError> Pager::write_page(
 }
 
 WithError<std::span<char>, PagerError> Pager::find_slot(size_t row_num) {
-    assert(row_num < MAX_ROWS);
-
     auto page_num{row_num / ROWS_PER_PAGE};
     if (page_num >= MAX_PAGES) {
         return {

@@ -9,7 +9,7 @@
 using Page = char[];
 
 enum PagerErrorCode {
-    OUT_OF_BOUNDS,
+    OUT_OF_BOUNDS = 1,
     READ_FAILED,
     WRITE_FAILED,
 };

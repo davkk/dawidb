@@ -24,6 +24,7 @@
 Checks: >
   abseil-*,
   bugprone-*,
+  -bugprone-easily-swappable-parameters,
   google-*,
   misc-*,
   -misc-non-private-member-variables-in-classes,
