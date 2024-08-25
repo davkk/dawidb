@@ -5,6 +5,7 @@
 #include <format>
 
 #include "parser.hpp"
+#include "tree.hpp"
 
 class TableTest : public ::testing::Test {
 protected:
@@ -26,13 +27,12 @@ protected:
 };
 
 TEST_F(TableTest, InsertSaveSelectRead) {
-    auto num_rows{ROWS_PER_PAGE + 1};
     std::vector<Row> rows;
 
     {
         Table table{file};
 
-        for (uint32_t idx{1}; idx <= num_rows; idx++) {
+        for (uint32_t idx{1}; idx <= MAX_NODE_CELLS; idx++) {
             Row row{.id = idx};
 
             std::string username = std::format("hello{}", idx);
@@ -49,11 +49,10 @@ TEST_F(TableTest, InsertSaveSelectRead) {
     }
 
     Table table{file};
-    ASSERT_EQ(table.num_rows, num_rows);
 
     auto result{table.exec({StatementType::SELECT})};
 
-    for (size_t idx{0}; idx < num_rows; idx++) {
+    for (size_t idx{0}; idx < MAX_NODE_CELLS; idx++) {
         ASSERT_EQ(result[idx].id, rows[idx].id);
         ASSERT_EQ(result[idx].username, rows[idx].username);
         ASSERT_EQ(result[idx].email, rows[idx].email);

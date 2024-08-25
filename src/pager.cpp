@@ -7,8 +7,8 @@
 #include <memory>
 #include <print>
 
-#include "const.hpp"
 #include "cursor.hpp"
+#include "row.hpp"
 
 void Pager::handle_error(const PagerError &err) {
     std::cerr << std::format("{}\n", err.message);
@@ -30,32 +30,14 @@ Pager::Pager(std::fstream &file) : file{file} {
 
     file.seekp(0);
     assert(!file.fail());
+
+    num_pages = file_length / PAGE_SIZE;
+    assert(file_length % PAGE_SIZE == 0 && "file contains full pages");
 }
 
-void Pager::flush(size_t num_rows) {
-    auto num_full_pages = num_rows / ROWS_PER_PAGE;
-    assert(num_full_pages <= MAX_PAGES);
-
-    for (size_t page_num{0}; page_num < num_full_pages; page_num++) {
-        if (pages[page_num]) {
-            auto err{write(
-                pages[page_num],
-                static_cast<int64_t>(page_num * PAGE_SIZE),
-                PAGE_SIZE
-            )};
-            if (err) {
-                Pager::handle_error(*err);
-            }
-        }
-    }
-
-    size_t num_additional_rows = num_rows % ROWS_PER_PAGE;
-    if (num_additional_rows > 0 && pages[num_full_pages]) {
-        auto err{write(
-            pages[num_full_pages],
-            static_cast<int64_t>(num_full_pages * PAGE_SIZE),
-            static_cast<int64_t>(ROW_SIZE * num_additional_rows)
-        )};
+Pager::~Pager() {
+    for (size_t page_num{0}; page_num < num_pages; page_num++) {
+        auto err{write(page_num, static_cast<int64_t>(page_num * PAGE_SIZE))};
         if (err) {
             Pager::handle_error(*err);
         }
@@ -65,54 +47,68 @@ void Pager::flush(size_t num_rows) {
 }
 
 std::optional<PagerError> Pager::write(
-    const std::unique_ptr<Page> &page,
-    const std::streamoff file_pos,
-    const int64_t write_size
-) {
-    assert(page);
-    assert(write_size <= PAGE_SIZE);
-    assert(file_pos < MAX_PAGES * PAGE_SIZE);
-
-    file.seekp(file_pos);
-    file.write(page.get(), write_size);
-
-    if (file.fail()) {
-        return PagerError{
-            "failed to write to file",
-            PagerErrorCode::WRITE_FAILED
-        };
-    }
-
-    return std::nullopt;
-}
-
-std::optional<PagerError> Pager::read(
-    const std::unique_ptr<Page> &page,
+    const size_t page_num,
     const std::streamoff file_pos
 ) {
+    assert(page_num <= MAX_PAGES);
     assert(file_pos < MAX_PAGES * PAGE_SIZE);
 
-    file.seekp(file_pos);
-    file.read(page.get(), PAGE_SIZE);
+    if (const auto &page{pages[page_num]}) {
+        file.seekp(file_pos);
+        file.write(reinterpret_cast<char *>(page.get()), PAGE_SIZE);
 
-    if (file.eof()) {
-        file.clear();
-        file.seekp(0);
-    }
-
-    if (file.fail()) {
-        return PagerError{
-            "failed to read from file",
-            PagerErrorCode::READ_FAILED
-        };
+        if (file.fail()) {
+            return PagerError{
+                "failed to write to file",
+                PagerErrorCode::WRITE_FAILED
+            };
+        }
     }
 
     return std::nullopt;
 }
 
-WithError<std::span<char>, PagerError> Pager::get(const Cursor &cursor) {
-    auto page_num{cursor.pos / ROWS_PER_PAGE};
-    if (page_num >= MAX_PAGES) {
+WithError<const std::unique_ptr<Page> &, PagerError> Pager::read(
+    const size_t page_num
+) {
+    auto &page{pages[page_num]};
+
+    if (!page) {
+        page = std::make_unique<Page>();
+
+        if (page_num >= num_pages) {
+            num_pages++;
+        }
+
+        if (page_num < num_pages) {
+            auto file_pos{static_cast<int64_t>(page_num * PAGE_SIZE)};
+            assert(file_pos < MAX_PAGES * PAGE_SIZE);
+
+            file.seekp(file_pos);
+            file.read(reinterpret_cast<char *>(page.get()), PAGE_SIZE);
+
+            if (file.eof()) {
+                file.clear();
+                file.seekp(0);
+            }
+
+            if (file.fail()) {
+                return {
+                    {},
+                    PagerError{
+                        "failed to read from file",
+                        PagerErrorCode::READ_FAILED
+                    }
+                };
+            }
+        }
+    }
+
+    return {page, std::nullopt};
+}
+
+WithError<std::span<char>, PagerError> Pager::get_row(const Cursor &cursor) {
+    if (cursor.page_num >= MAX_PAGES) {
         return {
             {},
             PagerError{
@@ -122,26 +118,12 @@ WithError<std::span<char>, PagerError> Pager::get(const Cursor &cursor) {
         };
     }
 
-    auto &page{pages[page_num]};
-    if (!page) {
-        page = std::make_unique<Page>(PAGE_SIZE);
-
-        auto num_pages{file_length / PAGE_SIZE};
-        if (file_length % PAGE_SIZE > 0) {
-            num_pages++;
-        }
-
-        if (page_num < num_pages) {
-            auto err{read(page, static_cast<int64_t>(page_num * PAGE_SIZE))};
-            if (err) {
-                return {{}, err};
-            }
-        }
+    auto [page, err]{read(cursor.page_num)};
+    if (err) {
+        Pager::handle_error(*err);
     }
     assert(page);
 
-    auto offset = (cursor.pos % ROWS_PER_PAGE) * ROW_SIZE;
-    assert(offset + ROW_SIZE <= PAGE_SIZE);
-
-    return {{&page[offset], ROW_SIZE}, std::nullopt};
+    auto *data{reinterpret_cast<char *>(&page->cells[cursor.cell_num].value)};
+    return {{data, ROW_SIZE}, std::nullopt};
 }

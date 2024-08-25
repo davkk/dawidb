@@ -12,3 +12,5 @@ struct Row {
     void serialize_into(std::span<char> dest);
     void deserialize_from(std::span<char> src);
 };
+
+constexpr size_t ROW_SIZE = sizeof(Row);

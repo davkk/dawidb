@@ -1,7 +1,6 @@
 #include <format>
 #include <fstream>
 
-#include "const.hpp"
 #include "table.hpp"
 
 int main() {
@@ -19,7 +18,7 @@ int main() {
 
     Table table{file};
 
-    for (uint32_t idx{1}; idx <= ROWS_PER_PAGE + 1; idx++) {
+    for (uint32_t idx{1}; idx <= 4; idx++) {
         std::string username = std::format("hello{}", idx);
         std::string email = std::format("world{}", idx);
 

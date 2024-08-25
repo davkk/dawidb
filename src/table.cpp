@@ -4,17 +4,20 @@
 #include <print>
 #include <vector>
 
-#include "const.hpp"
 #include "pager.hpp"
 #include "row.hpp"
+#include "tree.hpp"
 
 Table::Table(std::fstream& file) : pager{file} {
-    assert(file.is_open());
-    num_rows = pager.file_length / ROW_SIZE;
-}
-
-Table::~Table() {
-    pager.flush(num_rows);
+    if (pager.num_pages == 0) {
+        auto [root_node, err]{pager.read(0)};
+        if (err) {
+            Pager::handle_error(*err);
+        }
+        root_node->header.num_cells = 0;
+        root_node->header.type = NodeType::LEAF;
+        root_node->header.is_root = true;
+    }
 }
 
 std::vector<Row> Table::exec(Statement&& statement) {
@@ -24,7 +27,7 @@ std::vector<Row> Table::exec(Statement&& statement) {
         auto cursor{Table::begin()};
 
         while (!cursor.eot) {
-            const auto [slot, err]{pager.get(cursor)};
+            const auto [slot, err]{pager.get_row(cursor)};
             if (err) {
                 Pager::handle_error(*err);
             }
@@ -34,35 +37,35 @@ std::vector<Row> Table::exec(Statement&& statement) {
             row.deserialize_from(slot);
             rows.push_back(row);
 
-            this->advance(cursor);
+            this->advance_cursor(cursor);
         }
 
         return rows;
     }
     case StatementType::INSERT: {
-        if (num_rows >= MAX_ROWS) {
-            std::println(stderr, "[!] max num of rows {} reached", MAX_ROWS);
-            return {};
-        }
-
-        const auto [slot, err]{pager.get(Table::end())};
+        auto [node, err]{pager.read(root_page_num)};
         if (err) {
             Pager::handle_error(*err);
         }
-        assert(slot.size() == ROW_SIZE);
+
+        assert(node->header.num_cells < MAX_NODE_CELLS && "unhandled error");
 
         auto& row{statement.row_to_insert};
-        row.serialize_into(slot);
-        num_rows++;
+        node->insert(Table::end(), {.key = row.id, .value = row});
 
-        return {};
+        return {row};
     }
     }
 }
 
-void Table::advance(Cursor& cursor) const {
-    cursor.pos++;
-    if (cursor.pos == num_rows) {
+void Table::advance_cursor(Cursor& cursor) {
+    auto [node, err]{pager.read(cursor.page_num)};
+    if (err) {
+        Pager::handle_error(*err);
+    }
+
+    cursor.cell_num++;
+    if (cursor.cell_num >= node->header.num_cells) {
         cursor.eot = true;
     }
 }

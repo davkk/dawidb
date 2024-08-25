@@ -5,8 +5,6 @@
 
 #include <span>
 
-#include "const.hpp"
-
 TEST(RowTest, SerializeDeserialize) {
     Row initial{420, {"hello"}, {"world"}};
 
