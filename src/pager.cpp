@@ -69,7 +69,7 @@ std::optional<PagerError> Pager::write(
     const std::streamoff file_pos,
     const int64_t write_size
 ) {
-    // assert(page);
+    assert(page);
     assert(write_size <= PAGE_SIZE);
     assert(file_pos < MAX_PAGES * PAGE_SIZE);
 
