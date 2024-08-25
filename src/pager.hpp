@@ -4,6 +4,7 @@
 #include <span>
 
 #include "const.hpp"
+#include "cursor.hpp"
 #include "with_error.hpp"
 
 using Page = char[];
@@ -30,7 +31,18 @@ struct Pager {
     Pager &operator=(const Pager &) = delete;
     Pager &operator=(Pager &&) = delete;
 
-    WithError<std::span<char>, PagerError> find_slot(size_t row_num);
+    void flush(size_t num_rows);
 
-    std::optional<PagerError> write_page(size_t page_num, int64_t write_size);
+    WithError<std::span<char>, PagerError> get(const Cursor &cursor);
+    std::optional<PagerError> read(
+        const std::unique_ptr<Page> &page,
+        std::streamoff file_pos
+    );
+    std::optional<PagerError> write(
+        const std::unique_ptr<Page> &page,
+        std::streamoff file_pos,
+        int64_t write_size
+    );
+
+    static void handle_error(const PagerError &err);
 };

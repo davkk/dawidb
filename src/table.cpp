@@ -1,24 +1,12 @@
 #include "table.hpp"
 
 #include <cassert>
-#include <cstdio>
-#include <iostream>
 #include <print>
+#include <vector>
 
 #include "const.hpp"
 #include "pager.hpp"
 #include "row.hpp"
-
-constexpr void handle_pager_error(const PagerError& err) {
-    std::cerr << std::format("{}\n", err.message);
-    switch (err.code) {
-    case PagerErrorCode::OUT_OF_BOUNDS:
-        return;
-    case PagerErrorCode::READ_FAILED:
-    case PagerErrorCode::WRITE_FAILED:
-        std::abort();
-    }
-}
 
 Table::Table(std::fstream& file) : pager{file} {
     assert(file.is_open());
@@ -26,82 +14,55 @@ Table::Table(std::fstream& file) : pager{file} {
 }
 
 Table::~Table() {
-    assert(num_rows >= 0);
-
-    auto num_full_pages = num_rows / ROWS_PER_PAGE;
-    assert(num_full_pages <= MAX_PAGES);
-
-    for (size_t page_num{0}; page_num < num_full_pages; page_num++) {
-        auto err{pager.write_page(page_num, PAGE_SIZE)};
-        if (err) {
-            handle_pager_error(*err);
-        }
-    }
-
-    size_t num_additional_rows = num_rows % ROWS_PER_PAGE;
-    if (num_additional_rows > 0) {
-        auto err{pager.write_page(
-            num_full_pages,
-            static_cast<int64_t>(ROW_SIZE * num_additional_rows)
-        )};
-        if (err) {
-            handle_pager_error(*err);
-        }
-    }
-
-    pager.file.flush();
+    pager.flush(num_rows);
 }
 
-void Table::exec(Statement&& statement) {
+std::vector<Row> Table::exec(Statement&& statement) {
     switch (statement.type) {
     case StatementType::SELECT: {
-        std::println("=== select statement ===");
+        std::vector<Row> rows;
+        auto cursor{Table::begin()};
 
-        for (size_t idx{0}; idx < num_rows; idx++) {
-            Row row{};
-
-            const auto [slot, err]{pager.find_slot(idx)};
+        while (!cursor.eot) {
+            const auto [slot, err]{pager.get(cursor)};
             if (err) {
-                handle_pager_error(*err);
+                Pager::handle_error(*err);
             }
             assert(slot.size() == ROW_SIZE);
 
+            Row row{};
             row.deserialize_from(slot);
-            std::println(
-                "{}|{}|{}",
-                row.id,
-                row.username.data(),
-                row.email.data()
-            );
+            rows.push_back(row);
+
+            this->advance(cursor);
         }
 
-        return;
+        return rows;
     }
     case StatementType::INSERT: {
-        std::println("=== insert statement ===");
-
         if (num_rows >= MAX_ROWS) {
             std::println(stderr, "[!] max num of rows {} reached", MAX_ROWS);
-            return;
+            return {};
         }
 
-        const auto [slot, err]{pager.find_slot(num_rows)};
+        const auto [slot, err]{pager.get(Table::end())};
         if (err) {
-            handle_pager_error(*err);
+            Pager::handle_error(*err);
         }
         assert(slot.size() == ROW_SIZE);
 
         auto& row{statement.row_to_insert};
-        std::println(
-            "{}|{}|{}",
-            row.id,
-            row.username.data(),
-            row.email.data()
-        );
         row.serialize_into(slot);
         num_rows++;
 
-        return;
+        return {};
     }
+    }
+}
+
+void Table::advance(Cursor& cursor) const {
+    cursor.pos++;
+    if (cursor.pos == num_rows) {
+        cursor.eot = true;
     }
 }
