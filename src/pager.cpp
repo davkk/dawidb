@@ -132,9 +132,7 @@ WithError<std::span<char>, PagerError> Pager::get(const Cursor &cursor) {
         }
 
         if (page_num < num_pages) {
-            auto err{
-                read(page, static_cast<int64_t>(page_num * PAGE_SIZE))
-            };
+            auto err{read(page, static_cast<int64_t>(page_num * PAGE_SIZE))};
             if (err) {
                 return {{}, err};
             }

@@ -11,7 +11,7 @@ protected:
     std::fstream file;
 
     void SetUp() override {
-        const std::string file_name{"/tmp/database"};
+        const std::string file_name{"/tmp/test_database"};
 
         std::ofstream file_new{file_name};
         file_new.close();
