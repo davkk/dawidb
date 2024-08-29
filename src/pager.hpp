@@ -17,8 +17,8 @@ enum PagerErrorCode {
 };
 
 struct PagerError {
-    std::string_view message;
     PagerErrorCode code;
+    std::string_view message;
 };
 
 struct Pager {

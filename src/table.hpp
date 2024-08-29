@@ -2,11 +2,20 @@
 
 #include <cassert>
 #include <cstddef>
-#include <memory>
+#include <cstdint>
 
 #include "cursor.hpp"
 #include "pager.hpp"
 #include "parser.hpp"
+
+enum TableErrorCode {
+    DUPLICATE_KEY = 1
+};
+
+struct TableError {
+    TableErrorCode code;
+    std::string message;
+};
 
 struct Table {
     Pager pager;
@@ -20,33 +29,12 @@ struct Table {
     Table &operator=(Table &&) = delete;
 
     void show();
-    std::vector<Row> exec(Statement &&statement);
+    WithError<std::optional<std::vector<Row>>, TableError> exec(
+        Statement &&statement
+    );
 
     void advance_cursor(Cursor &cursor);
 
-    [[nodiscard]] auto begin() {
-        auto [root_node, err]{pager.read(root_page_num)};
-        if (err) {
-            Pager::handle_error(*err);
-        }
-
-        return Cursor{
-            .page_num = root_page_num,
-            .cell_num = 0,
-            .eot = root_node->header.num_cells == 0,
-        };
-    }
-
-    [[nodiscard]] auto end() {
-        auto [root_node, err]{pager.read(root_page_num)};
-        if (err) {
-            Pager::handle_error(*err);
-        }
-
-        return Cursor{
-            .page_num = root_page_num,
-            .cell_num = root_node->header.num_cells,
-            .eot = true,
-        };
-    }
+    Cursor begin();
+    Cursor find(uint32_t key);
 };

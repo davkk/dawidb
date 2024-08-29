@@ -2,7 +2,10 @@
 
 #include <gtest/gtest.h>
 
-#include <format>
+#include <cstdint>
+#include <numeric>
+#include <print>
+#include <vector>
 
 #include "parser.hpp"
 #include "tree.hpp"
@@ -32,7 +35,10 @@ TEST_F(TableTest, InsertSaveSelectRead) {
     {
         Table table{file};
 
-        for (uint32_t idx{1}; idx <= MAX_NODE_CELLS; idx++) {
+        std::array<uint32_t, MAX_NODE_CELLS> indexes;
+        std::iota(indexes.rbegin(), indexes.rend(), 0);
+
+        for (const auto idx : indexes) {
             Row row{.id = idx};
 
             std::string username = std::format("hello{}", idx);
@@ -41,20 +47,23 @@ TEST_F(TableTest, InsertSaveSelectRead) {
             std::copy(username.begin(), username.end(), row.username.begin());
             std::copy(email.begin(), email.end(), row.email.begin());
 
-            table.exec(
+            const auto [result, err]{table.exec(
                 {StatementType::INSERT, {row.id, row.username, row.email}}
-            );
+            )};
+            ASSERT_FALSE(err);
+            ASSERT_TRUE(result);
+
             rows.push_back(row);
         }
     }
 
     Table table{file};
 
-    auto result{table.exec({StatementType::SELECT})};
+    const auto [result, err]{table.exec({StatementType::SELECT})};
+    ASSERT_FALSE(err);
+    ASSERT_TRUE(result);
 
     for (size_t idx{0}; idx < MAX_NODE_CELLS; idx++) {
-        ASSERT_EQ(result[idx].id, rows[idx].id);
-        ASSERT_EQ(result[idx].username, rows[idx].username);
-        ASSERT_EQ(result[idx].email, rows[idx].email);
+        ASSERT_EQ((*result)[idx], rows[MAX_NODE_CELLS - 1 - idx]);
     }
 }

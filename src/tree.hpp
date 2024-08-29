@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <memory>
 #include <print>
 
@@ -33,5 +34,6 @@ struct Node {
     std::array<Cell, MAX_NODE_CELLS> cells;
 
     void show();
+    uint32_t find_cell(uint32_t key);
     void insert(const Cursor& cursor, const Cell&& cell);
 };

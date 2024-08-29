@@ -2,7 +2,6 @@
 #include <fstream>
 
 #include "table.hpp"
-#include "tree.hpp"
 
 int main() {
     std::fstream file{

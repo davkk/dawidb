@@ -59,8 +59,8 @@ std::optional<PagerError> Pager::write(
 
         if (file.fail()) {
             return PagerError{
+                PagerErrorCode::WRITE_FAILED,
                 "failed to write to file",
-                PagerErrorCode::WRITE_FAILED
             };
         }
     }
@@ -96,8 +96,8 @@ WithError<const std::unique_ptr<Page> &, PagerError> Pager::read(
                 return {
                     {},
                     PagerError{
+                        PagerErrorCode::READ_FAILED,
                         "failed to read from file",
-                        PagerErrorCode::READ_FAILED
                     }
                 };
             }
@@ -112,8 +112,8 @@ WithError<std::span<char>, PagerError> Pager::get_row(const Cursor &cursor) {
         return {
             {},
             PagerError{
+                PagerErrorCode::OUT_OF_BOUNDS,
                 "page read out of bounds",
-                PagerErrorCode::OUT_OF_BOUNDS
             }
         };
     }

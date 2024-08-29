@@ -28,7 +28,9 @@ void Table::show() {
     }
 }
 
-std::vector<Row> Table::exec(Statement&& statement) {
+WithError<std::optional<std::vector<Row>>, TableError> Table::exec(
+    Statement&& statement
+) {
     switch (statement.type) {
     case StatementType::SELECT: {
         std::vector<Row> rows;
@@ -48,7 +50,7 @@ std::vector<Row> Table::exec(Statement&& statement) {
             this->advance_cursor(cursor);
         }
 
-        return rows;
+        return {rows, std::nullopt};
     }
     case StatementType::INSERT: {
         auto [node, err]{pager.read(root_page_num)};
@@ -59,11 +61,57 @@ std::vector<Row> Table::exec(Statement&& statement) {
         assert(node->header.num_cells < MAX_NODE_CELLS && "unhandled error");
 
         auto& row{statement.row_to_insert};
-        node->insert(Table::end(), {.key = row.id, .value = row});
+        auto cursor{Table::find(row.id)};
 
-        return {row};
+        if (node->cells[cursor.cell_num].key == row.id) {
+            return {
+                std::nullopt,
+                TableError{TableErrorCode::DUPLICATE_KEY, "duplicate key"}
+            };
+        }
+
+        node->insert(cursor, {.key = row.id, .value = row});
+        return {std::vector{row}, std::nullopt};
     }
     }
+}
+
+Cursor Table::begin() {
+    auto [root_node, err]{pager.read(root_page_num)};
+    if (err) {
+        Pager::handle_error(*err);
+    }
+
+    return Cursor{
+        .page_num = root_page_num,
+        .cell_num = 0,
+        .eot = root_node->header.num_cells == 0,
+    };
+}
+
+Cursor Table::find(uint32_t key) {
+    auto [root_node, err]{pager.read(root_page_num)};
+    if (err) {
+        Pager::handle_error(*err);
+    }
+
+    switch (root_node->header.type) {
+    case NodeType::LEAF:
+        return Cursor{
+            .page_num = root_page_num,
+            .cell_num = root_node->find_cell(key)
+        };
+        break;
+    case NodeType::INTERNAL:
+        assert("TODO search internal node" && false);
+        break;
+    }
+
+    return Cursor{
+        .page_num = root_page_num,
+        .cell_num = 0,
+        .eot = root_node->header.num_cells == 0,
+    };
 }
 
 void Table::advance_cursor(Cursor& cursor) {
