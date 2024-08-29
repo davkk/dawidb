@@ -2,23 +2,17 @@
 #include <fstream>
 
 #include "table.hpp"
+#include "tree.hpp"
 
 int main() {
-    constexpr auto file_mode{std::ios::binary | std::ios::out | std::ios::in};
-    const std::string file_name{"database"};
-
-    std::fstream file{file_name, file_mode};
-
-    if (!file.is_open()) {
-        std::ofstream file_new{file_name};
-        file_new.close();
-
-        file.open(file_name, file_mode);
-    }
+    std::fstream file{
+        "database",
+        std::ios::binary | std::ios::out | std::ios::in | std::ios::trunc
+    };
 
     Table table{file};
 
-    for (uint32_t idx{1}; idx <= 4; idx++) {
+    for (uint32_t idx{1}; idx <= 5; idx++) {
         std::string username = std::format("hello{}", idx);
         std::string email = std::format("world{}", idx);
 
@@ -30,6 +24,8 @@ int main() {
     }
 
     table.exec({StatementType::SELECT});
+
+    table.show();
 
     return 0;
 }

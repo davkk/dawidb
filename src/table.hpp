@@ -2,6 +2,7 @@
 
 #include <cassert>
 #include <cstddef>
+#include <memory>
 
 #include "cursor.hpp"
 #include "pager.hpp"
@@ -18,6 +19,7 @@ struct Table {
     Table &operator=(const Table &) = delete;
     Table &operator=(Table &&) = delete;
 
+    void show();
     std::vector<Row> exec(Statement &&statement);
 
     void advance_cursor(Cursor &cursor);

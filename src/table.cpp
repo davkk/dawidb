@@ -20,6 +20,14 @@ Table::Table(std::fstream& file) : pager{file} {
     }
 }
 
+void Table::show() {
+    std::println("Tree:");
+    const auto [page, err]{pager.read(0)};
+    if (not err) {
+        page->show();
+    }
+}
+
 std::vector<Row> Table::exec(Statement&& statement) {
     switch (statement.type) {
     case StatementType::SELECT: {
@@ -59,7 +67,7 @@ std::vector<Row> Table::exec(Statement&& statement) {
 }
 
 void Table::advance_cursor(Cursor& cursor) {
-    auto [node, err]{pager.read(cursor.page_num)};
+    const auto [node, err]{pager.read(cursor.page_num)};
     if (err) {
         Pager::handle_error(*err);
     }
