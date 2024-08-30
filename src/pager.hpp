@@ -39,7 +39,7 @@ struct Pager {
     auto flush() -> void;
 
     auto get_row(const Cursor& cursor) -> WithError<std::span<char>, PagerError>;
-    auto read(size_t page_num) -> WithError<const std::unique_ptr<Page>&, PagerError>;
+    auto read(size_t page_num) -> WithError<Page*, PagerError>;
     auto write(size_t page_num, std::streamoff file_pos) -> std::optional<PagerError>;
 
     static void handle_error(const PagerError& err);

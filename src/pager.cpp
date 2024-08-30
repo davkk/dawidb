@@ -65,7 +65,7 @@ auto Pager::write(const size_t page_num, const std::streamoff file_pos) -> std::
     return std::nullopt;
 }
 
-auto Pager::read(const size_t page_num) -> WithError<const std::unique_ptr<Page>&, PagerError> {
+auto Pager::read(const size_t page_num) -> WithError<Page*, PagerError> {
     auto& page{pages[page_num]};
 
     if (!page) {
@@ -89,17 +89,17 @@ auto Pager::read(const size_t page_num) -> WithError<const std::unique_ptr<Page>
 
             if (file.fail()) {
                 return {
-                    {},
+                    nullptr,
                     PagerError{
                         PagerErrorCode::READ_FAILED,
                         "failed to read from file",
-                    }
+                    },
                 };
             }
         }
     }
 
-    return {page, std::nullopt};
+    return {page.get(), std::nullopt};
 }
 
 auto Pager::get_row(const Cursor& cursor) -> WithError<std::span<char>, PagerError> {
@@ -109,7 +109,7 @@ auto Pager::get_row(const Cursor& cursor) -> WithError<std::span<char>, PagerErr
             PagerError{
                 PagerErrorCode::OUT_OF_BOUNDS,
                 "page read out of bounds",
-            }
+            },
         };
     }
 
