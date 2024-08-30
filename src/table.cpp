@@ -20,7 +20,7 @@ Table::Table(std::fstream& file) : pager{file} {
     }
 }
 
-void Table::show() {
+auto Table::show() -> void {
     std::println("Tree:");
     const auto [page, err]{pager.read(0)};
     if (not err) {
@@ -28,9 +28,7 @@ void Table::show() {
     }
 }
 
-WithError<std::optional<std::vector<Row>>, TableError> Table::exec(
-    Statement&& statement
-) {
+auto Table::exec(Statement&& statement) -> WithError<std::optional<std::vector<Row>>, TableError> {
     switch (statement.type) {
     case StatementType::SELECT: {
         std::vector<Row> rows;
@@ -66,7 +64,10 @@ WithError<std::optional<std::vector<Row>>, TableError> Table::exec(
         if (node->cells[cursor.cell_num].key == row.id) {
             return {
                 std::nullopt,
-                TableError{TableErrorCode::DUPLICATE_KEY, "duplicate key"}
+                TableError{
+                    TableErrorCode::DUPLICATE_KEY,
+                    "duplicate key",
+                }
             };
         }
 
@@ -76,7 +77,7 @@ WithError<std::optional<std::vector<Row>>, TableError> Table::exec(
     }
 }
 
-Cursor Table::begin() {
+auto Table::begin() -> Cursor {
     auto [root_node, err]{pager.read(root_page_num)};
     if (err) {
         Pager::handle_error(*err);
@@ -89,7 +90,7 @@ Cursor Table::begin() {
     };
 }
 
-Cursor Table::find(uint32_t key) {
+auto Table::find(uint32_t key) -> Cursor {
     auto [root_node, err]{pager.read(root_page_num)};
     if (err) {
         Pager::handle_error(*err);
@@ -99,7 +100,7 @@ Cursor Table::find(uint32_t key) {
     case NodeType::LEAF:
         return Cursor{
             .page_num = root_page_num,
-            .cell_num = root_node->find_cell(key)
+            .cell_num = root_node->find_cell(key),
         };
         break;
     case NodeType::INTERNAL:
@@ -114,7 +115,7 @@ Cursor Table::find(uint32_t key) {
     };
 }
 
-void Table::advance_cursor(Cursor& cursor) {
+auto Table::advance_cursor(Cursor& cursor) -> void {
     const auto [node, err]{pager.read(cursor.page_num)};
     if (err) {
         Pager::handle_error(*err);

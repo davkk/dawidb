@@ -9,8 +9,8 @@ struct Row {
     std::array<char, 32> username;
     std::array<char, 256> email;
 
-    void serialize_into(std::span<char> dest);
-    void deserialize_from(std::span<char> src);
+    auto serialize_into(std::span<char> dest) -> void;
+    auto deserialize_from(std::span<char> src) -> void;
 
     auto operator<=>(const Row&) const = default;
 };

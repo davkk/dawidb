@@ -2,16 +2,16 @@
 
 #include <print>
 
-void Node::show() {
+auto Node::show() -> void {
     std::println("leaf (size: {})", header.num_cells);
-    for (size_t idx{0}; idx < header.num_cells; idx++) {
+    for (auto idx{0UL}; idx < header.num_cells; idx++) {
         std::println(" - {} : {}", idx, cells[idx].key);
     }
 }
 
-uint32_t Node::find_cell(uint32_t key) {
-    size_t min{0};
-    size_t max{header.num_cells};
+auto Node::find_cell(uint32_t key) -> uint32_t {
+    auto min{0UL};
+    auto max{header.num_cells};
 
     while (min != max) {
         auto mid{(min + max) / 2};
@@ -31,7 +31,7 @@ uint32_t Node::find_cell(uint32_t key) {
     return min;
 }
 
-void Node::insert(const Cursor& cursor, const Cell&& cell) {
+auto Node::insert(const Cursor& cursor, const Cell& cell) -> void {
     if (header.num_cells >= MAX_NODE_CELLS) {
         std::println(stderr, "TODO: node splitting");
         std::abort();
@@ -39,7 +39,7 @@ void Node::insert(const Cursor& cursor, const Cell&& cell) {
 
     // make room for new cell
     if (cursor.cell_num < header.num_cells) {
-        for (size_t idx{header.num_cells}; idx > cursor.cell_num; idx--) {
+        for (auto idx{header.num_cells}; idx > cursor.cell_num; idx--) {
             // move cell over to the right
             cells[idx] = cells[idx - 1];
         }

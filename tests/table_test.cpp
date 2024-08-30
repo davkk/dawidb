@@ -47,9 +47,11 @@ TEST_F(TableTest, InsertSaveSelectRead) {
             std::copy(username.begin(), username.end(), row.username.begin());
             std::copy(email.begin(), email.end(), row.email.begin());
 
-            const auto [result, err]{table.exec(
-                {StatementType::INSERT, {row.id, row.username, row.email}}
-            )};
+            const auto [result, err]{table.exec({
+                StatementType::INSERT,
+                {row.id, row.username, row.email},
+            })};
+
             ASSERT_FALSE(err);
             ASSERT_TRUE(result);
 

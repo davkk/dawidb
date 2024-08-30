@@ -21,20 +21,18 @@ struct Table {
     Pager pager;
     size_t root_page_num{0};
 
-    explicit Table(std::fstream &file);
+    explicit Table(std::fstream& file);
 
-    Table(const Table &) = delete;
-    Table(Table &&) = delete;
-    Table &operator=(const Table &) = delete;
-    Table &operator=(Table &&) = delete;
+    Table(const Table&) = delete;
+    Table(Table&&) = delete;
+    auto& operator=(const Table&) = delete;
+    auto& operator=(Table&&) = delete;
 
-    void show();
-    WithError<std::optional<std::vector<Row>>, TableError> exec(
-        Statement &&statement
-    );
+    auto show() -> void;
+    auto exec(Statement&& statement) -> WithError<std::optional<std::vector<Row>>, TableError>;
 
-    void advance_cursor(Cursor &cursor);
+    auto advance_cursor(Cursor& cursor) -> void;
 
-    Cursor begin();
-    Cursor find(uint32_t key);
+    auto begin() -> Cursor;
+    auto find(uint32_t key) -> Cursor;
 };
