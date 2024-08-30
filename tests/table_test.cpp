@@ -2,8 +2,8 @@
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <cstdint>
-#include <numeric>
 #include <print>
 #include <vector>
 
@@ -35,8 +35,7 @@ TEST_F(TableTest, InsertSaveSelectRead) {
     {
         Table table{file};
 
-        std::array<uint32_t, MAX_NODE_CELLS> indexes;
-        std::iota(indexes.rbegin(), indexes.rend(), 0);
+        std::array<uint32_t, MAX_NODE_CELLS> indexes{8, 1, 21, 4, 11, 2, 10, 27, 18, 12, 16, 23, 3};
 
         for (const auto idx : indexes) {
             Row row{.id = idx};
@@ -52,8 +51,8 @@ TEST_F(TableTest, InsertSaveSelectRead) {
                 {row.id, row.username, row.email},
             })};
 
-            ASSERT_FALSE(err);
-            ASSERT_TRUE(result);
+            ASSERT_FALSE("error from insert" && err);
+            ASSERT_TRUE("result from insert" && result);
 
             rows.push_back(row);
         }
@@ -62,10 +61,16 @@ TEST_F(TableTest, InsertSaveSelectRead) {
     Table table{file};
 
     const auto [result, err]{table.exec({StatementType::SELECT})};
-    ASSERT_FALSE(err);
-    ASSERT_TRUE(result);
+    ASSERT_FALSE("error from select" && err);
+    ASSERT_TRUE("result from select" && result);
 
-    for (size_t idx{0}; idx < MAX_NODE_CELLS; idx++) {
-        ASSERT_EQ((*result)[idx], rows[MAX_NODE_CELLS - 1 - idx]);
+    std::ranges::sort(rows, [](const Row& a, const Row& b) {
+        return a.id < b.id;
+    });
+
+    for (size_t idx{0}; idx < rows.size(); idx++) {
+        ASSERT_EQ((*result)[idx].id, rows[idx].id);
+        ASSERT_EQ((*result)[idx].username, rows[idx].username);
+        ASSERT_EQ((*result)[idx].email, rows[idx].email);
     }
 }
