@@ -56,7 +56,7 @@ auto Table::exec(Statement&& statement) -> WithError<std::optional<std::vector<R
             Pager::handle_error(*err);
         }
 
-        assert(node->header.num_cells < MAX_NODE_CELLS && "unhandled error");
+        assert("unhandled error" && node->header.num_cells < MAX_NODE_CELLS);
 
         auto& row{statement.row_to_insert};
         auto cursor{Table::find(row.id)};

@@ -22,7 +22,7 @@ Pager::Pager(std::fstream& file) : file{file} {
     assert(!file.fail());
 
     num_pages = file_length / PAGE_SIZE;
-    assert(file_length % PAGE_SIZE == 0 && "file contains full pages");
+    assert("file contains full pages" && file_length % PAGE_SIZE == 0);
 }
 
 Pager::~Pager() {
