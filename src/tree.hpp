@@ -31,7 +31,7 @@ constexpr auto MAX_NODE_CELLS = (PAGE_SIZE - sizeof(Header)) / sizeof(Cell);
 
 struct Node {
     Header header;
-    std::array<Cell, MAX_NODE_CELLS> cells;
+    Cell cells[MAX_NODE_CELLS];
 
     auto show() -> void;
     auto find_cell(uint32_t key) -> uint32_t;

@@ -27,7 +27,7 @@ Pager::Pager(std::fstream& file) : file{file} {
 
 Pager::~Pager() {
     for (auto page_num{0UL}; page_num < num_pages; page_num++) {
-        auto err{write(page_num, static_cast<int64_t>(page_num * PAGE_SIZE))};
+        auto err{write_page(page_num, static_cast<int64_t>(page_num * PAGE_SIZE))};
         if (err) {
             Pager::handle_error(*err);
         }
@@ -42,11 +42,12 @@ auto Pager::handle_error(const PagerError& err) -> void {
     case PagerErrorCode::OUT_OF_BOUNDS:
     case PagerErrorCode::READ_FAILED:
     case PagerErrorCode::WRITE_FAILED:
+    case PagerErrorCode::PAGE_NOT_EXIST:
         std::abort();
     }
 }
 
-auto Pager::write(const size_t page_num, const std::streamoff file_pos) -> std::optional<PagerError> {
+auto Pager::write_page(const size_t page_num, const std::streamoff file_pos) -> std::optional<PagerError> {
     assert(page_num <= MAX_PAGES);
     assert(file_pos < MAX_PAGES * PAGE_SIZE);
 
@@ -60,12 +61,17 @@ auto Pager::write(const size_t page_num, const std::streamoff file_pos) -> std::
                 "failed to write to file",
             };
         }
+
+        return std::nullopt;
     }
 
-    return std::nullopt;
+    return PagerError{
+        PagerErrorCode::PAGE_NOT_EXIST,
+        "page doesn't exist",
+    };
 }
 
-auto Pager::read(const size_t page_num) -> WithError<Page*, PagerError> {
+auto Pager::read_page(const size_t page_num) -> WithError<Page*, PagerError> {
     auto& page{pages[page_num]};
 
     if (!page) {
@@ -102,10 +108,10 @@ auto Pager::read(const size_t page_num) -> WithError<Page*, PagerError> {
     return {page.get(), std::nullopt};
 }
 
-auto Pager::get_row(const Cursor& cursor) -> WithError<std::span<char>, PagerError> {
+auto Pager::get_row(const Cursor& cursor) -> WithError<Row*, PagerError> {
     if (cursor.page_num >= MAX_PAGES) {
         return {
-            {},
+            nullptr,
             PagerError{
                 PagerErrorCode::OUT_OF_BOUNDS,
                 "page read out of bounds",
@@ -113,12 +119,11 @@ auto Pager::get_row(const Cursor& cursor) -> WithError<std::span<char>, PagerErr
         };
     }
 
-    auto [page, err]{read(cursor.page_num)};
+    auto [page, err]{read_page(cursor.page_num)};
     if (err) {
         Pager::handle_error(*err);
     }
     assert(page);
 
-    auto* data{reinterpret_cast<char*>(&page->cells[cursor.cell_num].value)};
-    return {{data, ROW_SIZE}, std::nullopt};
+    return {&page->cells[cursor.cell_num].value, std::nullopt};
 }

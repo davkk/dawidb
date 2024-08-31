@@ -3,18 +3,15 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
-#include <span>
-
 TEST(RowTest, SerializeDeserialize) {
     Row initial{420, {"hello"}, {"world"}};
 
-    std::array<char, ROW_SIZE> buffer{};
-    initial.serialize_into(std::span<char>{buffer});
+    Row buffer;
+    initial.serialize(&buffer);
 
-    Row final{};
-    final.deserialize_from(std::span<char>{buffer});
+    auto final{Row::from(&buffer)};
 
     ASSERT_EQ(initial.id, final.id);
-    ASSERT_EQ(initial.username, final.username);
-    ASSERT_EQ(initial.email, final.email);
+    ASSERT_TRUE("usernames equal" && std::strcmp(initial.username, final.username) == 0);
+    ASSERT_TRUE("emails equal" && std::strcmp(initial.email, final.email) == 0);
 }

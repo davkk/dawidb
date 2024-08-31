@@ -1,7 +1,6 @@
 #pragma once
 
 #include <fstream>
-#include <span>
 
 #include "const.hpp"
 #include "cursor.hpp"
@@ -14,6 +13,7 @@ enum PagerErrorCode {
     OUT_OF_BOUNDS = 1,
     READ_FAILED,
     WRITE_FAILED,
+    PAGE_NOT_EXIST,
 };
 
 struct PagerError {
@@ -25,7 +25,7 @@ struct Pager {
     std::fstream& file;
     size_t file_length{0};
 
-    std::array<std::unique_ptr<Page>, MAX_PAGES> pages{};
+    std::unique_ptr<Page> pages[MAX_PAGES];
     size_t num_pages{0};
 
     explicit Pager(std::fstream& file);
@@ -38,9 +38,9 @@ struct Pager {
 
     auto flush() -> void;
 
-    auto get_row(const Cursor& cursor) -> WithError<std::span<char>, PagerError>;
-    auto read(size_t page_num) -> WithError<Page*, PagerError>;
-    auto write(size_t page_num, std::streamoff file_pos) -> std::optional<PagerError>;
+    auto get_row(const Cursor& cursor) -> WithError<Row*, PagerError>;
+    auto read_page(size_t page_num) -> WithError<Page*, PagerError>;
+    auto write_page(size_t page_num, std::streamoff file_pos) -> std::optional<PagerError>;
 
     static void handle_error(const PagerError& err);
 };

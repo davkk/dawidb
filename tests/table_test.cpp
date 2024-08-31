@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <cstring>
 #include <print>
 #include <vector>
 
@@ -35,7 +36,7 @@ TEST_F(TableTest, InsertSaveSelectRead) {
     {
         Table table{file};
 
-        std::array<uint32_t, MAX_NODE_CELLS> indexes{8, 1, 21, 4, 11, 2, 10, 27, 18, 12, 16, 23, 3};
+        uint32_t indexes[MAX_NODE_CELLS]{8, 1, 21, 4, 11, 2, 10, 27, 18, 12, 16, 23, 3};
 
         for (const auto idx : indexes) {
             Row row{.id = idx};
@@ -43,12 +44,12 @@ TEST_F(TableTest, InsertSaveSelectRead) {
             std::string username = std::format("hello{}", idx);
             std::string email = std::format("world{}", idx);
 
-            std::copy(username.begin(), username.end(), row.username.begin());
-            std::copy(email.begin(), email.end(), row.email.begin());
+            std::copy(username.begin(), username.end(), row.username);
+            std::copy(email.begin(), email.end(), row.email);
 
             const auto [result, err]{table.exec({
                 StatementType::INSERT,
-                {row.id, row.username, row.email},
+                row,
             })};
 
             ASSERT_FALSE("error from insert" && err);
@@ -70,7 +71,7 @@ TEST_F(TableTest, InsertSaveSelectRead) {
 
     for (size_t idx{0}; idx < rows.size(); idx++) {
         ASSERT_EQ((*result)[idx].id, rows[idx].id);
-        ASSERT_EQ((*result)[idx].username, rows[idx].username);
-        ASSERT_EQ((*result)[idx].email, rows[idx].email);
+        ASSERT_TRUE("usernames equal" && std::strcmp((*result)[idx].username, rows[idx].username) == 0);
+        ASSERT_TRUE("emails equal" && std::strcmp((*result)[idx].email, rows[idx].email) == 0);
     }
 }

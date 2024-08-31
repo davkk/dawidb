@@ -10,7 +10,7 @@
 
 Table::Table(std::fstream& file) : pager{file} {
     if (pager.num_pages == 0) {
-        auto [root_node, err]{pager.read(0)};
+        auto [root_node, err]{pager.read_page(0)};
         if (err) {
             Pager::handle_error(*err);
         }
@@ -22,7 +22,7 @@ Table::Table(std::fstream& file) : pager{file} {
 
 auto Table::show() -> void {
     std::println("Tree:");
-    const auto [page, err]{pager.read(0)};
+    const auto [page, err]{pager.read_page(0)};
     if (not err) {
         page->show();
     }
@@ -35,23 +35,20 @@ auto Table::exec(Statement&& statement) -> WithError<std::optional<std::vector<R
         auto cursor{Table::begin()};
 
         while (!cursor.eot) {
-            const auto [slot, err]{pager.get_row(cursor)};
+            auto [row, err]{pager.get_row(cursor)};
             if (err) {
                 Pager::handle_error(*err);
             }
-            assert(slot.size() == ROW_SIZE);
+            assert(row);
 
-            Row row{};
-            row.deserialize_from(slot);
-            rows.push_back(row);
-
+            rows.push_back(*row);
             this->advance_cursor(cursor);
         }
 
         return {rows, std::nullopt};
     }
     case StatementType::INSERT: {
-        auto [node, err]{pager.read(root_page_num)};
+        auto [node, err]{pager.read_page(root_page_num)};
         if (err) {
             Pager::handle_error(*err);
         }
@@ -78,7 +75,7 @@ auto Table::exec(Statement&& statement) -> WithError<std::optional<std::vector<R
 }
 
 auto Table::begin() -> Cursor {
-    auto [root_node, err]{pager.read(root_page_num)};
+    auto [root_node, err]{pager.read_page(root_page_num)};
     if (err) {
         Pager::handle_error(*err);
     }
@@ -91,7 +88,7 @@ auto Table::begin() -> Cursor {
 }
 
 auto Table::find(uint32_t key) -> Cursor {
-    auto [root_node, err]{pager.read(root_page_num)};
+    auto [root_node, err]{pager.read_page(root_page_num)};
     if (err) {
         Pager::handle_error(*err);
     }
@@ -116,7 +113,7 @@ auto Table::find(uint32_t key) -> Cursor {
 }
 
 auto Table::advance_cursor(Cursor& cursor) -> void {
-    const auto [node, err]{pager.read(cursor.page_num)};
+    const auto [node, err]{pager.read_page(cursor.page_num)};
     if (err) {
         Pager::handle_error(*err);
     }

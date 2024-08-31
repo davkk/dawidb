@@ -1,16 +1,16 @@
 #pragma once
 
-#include <array>
+#include <compare>
 #include <cstdint>
-#include <span>
 
 struct Row {
     uint32_t id;
-    std::array<char, 32> username;
-    std::array<char, 256> email;
+    char username[32];
+    char email[256];
 
-    auto serialize_into(std::span<char> dest) -> void;
-    auto deserialize_from(std::span<char> src) -> void;
+    static auto from(const Row* src) -> Row;
+
+    auto serialize(Row* dest) -> void;
 
     auto operator<=>(const Row&) const = default;
 };
