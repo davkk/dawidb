@@ -1,39 +1,42 @@
 #pragma once
 
-#include <cstdint>
 #include <memory>
 #include <print>
 
-#include "const.hpp"
-#include "cursor.hpp"
-#include "row.hpp"
-
-enum class NodeType : bool {
-    LEAF,
-    INTERNAL,
-};
+constexpr auto PAGE_SIZE = 4096UL;
+constexpr auto MAX_PAGES = 100UL;
 
 struct Cell {
-    uint32_t key;
-    Row value;
+    size_t key;
+    int value;
 };
 
-struct Node;
-
-struct Header {
-    NodeType type;
-    bool is_root;
-    size_t num_cells;
-    std::shared_ptr<Node> parent;
-};
-
-constexpr auto MAX_NODE_CELLS = (PAGE_SIZE - sizeof(Header)) / sizeof(Cell);
+constexpr auto DEGREE = 3UL;
+constexpr auto MAX_CHILDREN = 2UL * DEGREE;
+constexpr auto MAX_CELLS = MAX_CHILDREN - 1UL;
+constexpr auto MIN_CELLS = DEGREE - 1UL;
 
 struct Node {
-    Header header;
-    Cell cells[MAX_NODE_CELLS];
+    size_t num_cells{0};
+    size_t num_children{0};
 
-    auto show() -> void;
-    auto find_cell(uint32_t key) -> uint32_t;
-    auto insert(const Cursor& cursor, const Cell& cell) -> void;
+    std::array<std::shared_ptr<Cell>, MAX_CELLS> cells;
+    std::array<std::shared_ptr<Node>, MAX_CHILDREN> children;
+
+    auto show(size_t level) const -> void;
+    auto is_leaf() const -> bool;
+    auto search(size_t key) -> std::pair<size_t, bool>;
+    auto insert_cell(size_t pos, std::shared_ptr<Cell> cell) -> void;
+    auto insert_child(size_t pos, std::shared_ptr<Node> node) -> void;
+    auto insert(Cell& cell) -> bool;
+    auto split() -> std::pair<std::shared_ptr<Cell>, std::shared_ptr<Node>>;
+};
+
+struct BTree {
+    std::shared_ptr<Node> root{nullptr};
+
+    auto show() const -> void;
+    auto find(size_t key) const -> std::optional<int>;
+    auto split_root() -> void;
+    auto insert(size_t key, int value) -> void;
 };

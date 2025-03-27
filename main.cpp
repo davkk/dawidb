@@ -1,28 +1,23 @@
-#include <format>
-#include <fstream>
+#include <print>
 
-#include "table.hpp"
+#include "tree.hpp"
 
 int main() {
-    std::fstream file{"database", std::ios::binary | std::ios::out | std::ios::in | std::ios::trunc};
+    BTree tree;
 
-    Table table{file};
+    tree.insert(10, 10);
+    tree.insert(20, 20);
+    tree.insert(30, 30);
+    tree.insert(40, 40);
 
-    for (uint32_t idx{1}; idx <= 5; idx++) {
-        Row row{.id = idx};
+    tree.show();
 
-        std::string username = std::format("hello{}", idx);
-        std::string email = std::format("world{}", idx);
-
-        std::copy(username.begin(), username.end(), row.username);
-        std::copy(email.begin(), email.end(), row.email);
-
-        table.exec({StatementType::INSERT, row});
+    auto result = tree.find(10);
+    if (result.has_value()) {
+        std::println("Found: {}", result.value());
+    } else {
+        std::println("Not found");
     }
-
-    table.exec({StatementType::SELECT});
-
-    table.show();
 
     return 0;
 }
