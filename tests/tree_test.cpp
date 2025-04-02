@@ -7,13 +7,13 @@
 class BTreeTest : public ::testing::Test {
 protected:
     BTree tree;
-    std::vector<Cell> cells;
+    std::vector<Item> items;
 
     void insert_keys(const std::vector<size_t>& keys) {
-        cells.clear();  // Ensure cells is reset for each test
+        items.clear();  // ensure items is reset for each test
         for (auto key : keys) {
             auto value{static_cast<int>(key * 10)};
-            cells.emplace_back(key, value);
+            items.emplace_back(key, value);
             tree.insert(key, value);
         }
     }
@@ -34,42 +34,42 @@ TEST_F(BTreeTest, InsertOneKey) {
 
 TEST_F(BTreeTest, InsertMultipleNoSplit) {
     std::vector<size_t> keys;
-    for (auto idx{1UL}; idx <= MAX_CELLS; ++idx) {
+    for (auto idx{1UL}; idx <= MAX_ITEMS; ++idx) {
         keys.push_back(idx * 10);
     }
     insert_keys(keys);
 
     tree.show();
 
-    for (const auto& cell : cells) {
-        auto result = tree.find(cell.key);
+    for (const auto& item : items) {
+        auto result = tree.find(item.key);
         EXPECT_TRUE(result.has_value());
-        EXPECT_EQ(*result, cell.value);
+        EXPECT_EQ(*result, item.value);
     }
 
-    EXPECT_FALSE(tree.find(10 * (MAX_CELLS + 1)).has_value());
+    EXPECT_FALSE(tree.find(10 * (MAX_ITEMS + 1)).has_value());
 }
 
 TEST_F(BTreeTest, InsertCausingSplit) {
     std::vector<size_t> keys;
-    for (auto idx{1UL}; idx <= MAX_CELLS + 1; ++idx) {
+    for (auto idx{1UL}; idx <= MAX_ITEMS + 1; ++idx) {
         keys.push_back(idx * 10);
     }
     insert_keys(keys);
 
     tree.show();
 
-    for (const auto& cell : cells) {
-        auto result = tree.find(cell.key);
+    for (const auto& item : items) {
+        auto result = tree.find(item.key);
         EXPECT_TRUE(result.has_value());
-        EXPECT_EQ(*result, cell.value);
+        EXPECT_EQ(*result, item.value);
     }
 }
 
 TEST_F(BTreeTest, RemoveExistingKey) {
     auto key{30UL};
     auto value{40};
-    cells.emplace_back(key, value);
+    items.emplace_back(key, value);
     tree.insert(key, value);
 
     tree.show();
@@ -89,7 +89,7 @@ TEST_F(BTreeTest, RemoveExistingKey) {
 TEST_F(BTreeTest, RemoveNonExistentKey) {
     auto key{50UL};
     auto value{60};
-    cells.emplace_back(key, value);
+    items.emplace_back(key, value);
     tree.insert(key, value);
 
     tree.show();
@@ -107,12 +107,12 @@ TEST_F(BTreeTest, InsertDuplicateKey) {
     auto value1{80};
     auto value2{90};
 
-    cells.emplace_back(key, value1);
+    items.emplace_back(key, value1);
     tree.insert(key, value1);
     tree.show();
 
-    cells.clear();  // Update expected value for duplicate
-    cells.emplace_back(key, value2);
+    items.clear();  // Update expected value for duplicate
+    items.emplace_back(key, value2);
     tree.insert(key, value2);
     tree.show();
 
