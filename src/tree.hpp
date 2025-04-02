@@ -20,27 +20,27 @@ struct Node {
     size_t num_cells{0};
     size_t num_children{0};
 
-    std::array<std::shared_ptr<Cell>, MAX_CELLS> cells;
-    std::array<std::shared_ptr<Node>, MAX_CHILDREN> children;
+    std::array<std::unique_ptr<Cell>, MAX_CELLS> cells;
+    std::array<std::unique_ptr<Node>, MAX_CHILDREN> children;
 
     auto show(size_t level) const -> void;
-    auto is_leaf() const -> bool;
+    [[nodiscard]] auto is_leaf() const -> bool;
     auto search(size_t key) -> std::pair<size_t, bool>;
-    auto insert_cell(size_t pos, std::shared_ptr<Cell> cell) -> void;
-    auto insert_child(size_t pos, std::shared_ptr<Node> node) -> void;
+    auto insert_cell(size_t pos, std::unique_ptr<Cell> cell) -> void;
+    auto insert_child(size_t pos, std::unique_ptr<Node> node) -> void;
     auto insert(Cell& cell) -> bool;
-    auto split() -> std::pair<std::shared_ptr<Cell>, std::shared_ptr<Node>>;
-    auto remove_cell(size_t pos) -> std::shared_ptr<Cell>;
-    auto remove_child(size_t pos) -> std::shared_ptr<Node>;
+    auto split() -> std::pair<std::unique_ptr<Cell>, std::unique_ptr<Node>>;
+    auto remove_cell(size_t pos) -> std::unique_ptr<Cell>;
+    auto remove_child(size_t pos) -> std::unique_ptr<Node>;
     auto fill_child(size_t pos) -> void;
-    auto remove(size_t key, bool is_seeking_successor) -> std::shared_ptr<Cell>;
+    auto remove(size_t key, bool is_seeking_successor) -> std::unique_ptr<Cell>;
 };
 
 struct BTree {
-    std::shared_ptr<Node> root{nullptr};
+    std::unique_ptr<Node> root{nullptr};
 
     auto show() const -> void;
-    auto find(size_t key) const -> std::optional<int>;
+    [[nodiscard]] auto find(size_t key) const -> std::optional<int>;
     auto split_root() -> void;
     auto insert(size_t key, int value) -> void;
     auto remove(size_t key) -> bool;

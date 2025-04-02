@@ -29,7 +29,7 @@ auto Node::search(size_t key) -> std::pair<size_t, bool> {
 
     while (low < high) {
         auto mid{(low + high) / 2UL};
-        auto cell{cells[mid]};
+        const auto* cell{cells[mid].get()};
 
         if (cell->key == key) {
             return {mid, true};
@@ -45,13 +45,13 @@ auto Node::search(size_t key) -> std::pair<size_t, bool> {
     return {low, false};
 }
 
-auto Node::insert_cell(size_t pos, std::shared_ptr<Cell> cell) -> void {
+auto Node::insert_cell(size_t pos, std::unique_ptr<Cell> cell) -> void {
     assert(pos < MAX_CELLS);
     assert(cell != nullptr);
 
     if (pos < num_cells) {
         for (auto idx{num_cells}; idx > pos; --idx) {
-            cells[idx] = cells[idx - 1];
+            cells[idx] = std::move(cells[idx - 1]);
         }
     }
 
@@ -60,13 +60,13 @@ auto Node::insert_cell(size_t pos, std::shared_ptr<Cell> cell) -> void {
     assert(num_cells <= MAX_CELLS);
 }
 
-auto Node::insert_child(size_t pos, std::shared_ptr<Node> node) -> void {
+auto Node::insert_child(size_t pos, std::unique_ptr<Node> node) -> void {
     assert(pos < MAX_CHILDREN);
     assert(node != nullptr);
 
     if (pos < num_children) {
         for (auto idx{num_children}; idx > pos; --idx) {
-            children[idx] = children[idx - 1];
+            children[idx] = std::move(children[idx - 1]);
         }
     }
 
@@ -77,28 +77,28 @@ auto Node::insert_child(size_t pos, std::shared_ptr<Node> node) -> void {
 
 auto Node::insert(Cell& cell) -> bool {
     auto [pos, found]{search(cell.key)};
-    auto new_cell{std::make_shared<Cell>(cell)};
+    auto new_cell{std::make_unique<Cell>(cell)};
 
     if (found) {
-        cells[pos] = new_cell;
+        cells[pos] = std::move(new_cell);
         return false;
     }
 
     if (is_leaf()) {
-        insert_cell(pos, new_cell);
+        insert_cell(pos, std::move(new_cell));
         return true;
     }
 
     if (children[pos]->num_cells >= MAX_CELLS) {
         auto [mid_cell, new_node]{children[pos]->split()};
 
-        insert_cell(pos, mid_cell);
-        insert_child(pos + 1, new_node);
+        insert_cell(pos, std::move(mid_cell));
+        insert_child(pos + 1, std::move(new_node));
 
         if (cell.key > cells[pos]->key) {
             pos++;
         } else if (cell.key == cells[pos]->key) {
-            cells[pos] = new_cell;
+            cells[pos] = std::move(new_cell);
             return true;
         }
     }
@@ -106,64 +106,60 @@ auto Node::insert(Cell& cell) -> bool {
     return children[pos]->insert(cell);
 }
 
-auto Node::split() -> std::pair<std::shared_ptr<Cell>, std::shared_ptr<Node>> {
+auto Node::split() -> std::pair<std::unique_ptr<Cell>, std::unique_ptr<Node>> {
     auto mid{MIN_CELLS};
-    auto mid_cell{cells[mid]};
-    assert(mid_cell != nullptr);
+    auto new_node{std::make_unique<Node>()};
 
-    auto new_node{std::make_shared<Node>()};
-
+    assert(num_cells >= mid + 1);
     new_node->num_cells = num_cells - (mid + 1);
-    assert(new_node->num_cells >= 0);
     for (auto idx{0UL}; idx < new_node->num_cells; ++idx) {
-        new_node->cells[idx] = cells[idx + (mid + 1)];
+        new_node->cells[idx] = std::move(cells[idx + (mid + 1)]);
     }
     num_cells = mid;
 
     if (!is_leaf()) {
+        assert(num_children >= mid + 1);
         new_node->num_children = num_children - (mid + 1);
-        assert(new_node->num_children >= 0);
         for (auto idx{0UL}; idx < new_node->num_children; ++idx) {
-            new_node->children[idx] = children[idx + (mid + 1)];
+            new_node->children[idx] = std::move(children[idx + (mid + 1)]);
         }
         num_children = mid + 1;
     }
 
-    return std::make_pair(mid_cell, new_node);
+    assert(cells[mid] != nullptr);
+    return {std::move(cells[mid]), std::move(new_node)};
 }
 
-auto Node::remove_cell(size_t pos) -> std::shared_ptr<Cell> {
+auto Node::remove_cell(size_t pos) -> std::unique_ptr<Cell> {
     assert(pos < num_cells);
-    auto removed{cells[pos]};
+    auto removed{std::move(cells[pos])};
 
-    cells[pos] = nullptr;
     auto last{num_cells - 1};
     if (pos < last) {
         for (auto idx{pos}; idx < last; ++idx) {
-            cells[idx] = cells[idx + 1];
+            cells[idx] = std::move(cells[idx + 1]);
         }
-        cells[last] = nullptr;
+        cells[last].reset();
     }
+    assert(num_cells != 0);
     num_cells--;
-    assert(num_cells >= 0);
 
     return removed;
 }
 
-auto Node::remove_child(size_t pos) -> std::shared_ptr<Node> {
+auto Node::remove_child(size_t pos) -> std::unique_ptr<Node> {
     assert(pos < num_children);
-    auto removed{children[pos]};
+    auto removed{std::move(children[pos])};
 
-    children[pos] = nullptr;
     auto last{num_children - 1};
     if (pos < last) {
         for (auto idx{pos}; idx < last; ++idx) {
-            children[idx] = children[idx + 1];
+            children[idx] = std::move(children[idx + 1]);
         }
-        children[last] = nullptr;
+        children[last].reset();
     }
+    assert(num_children != 0);
     num_children--;
-    assert(num_children >= 0);
 
     return removed;
 }
@@ -174,10 +170,11 @@ auto Node::fill_child(size_t pos) -> void {
         auto& right{children[pos]};
 
         assert(right->num_cells + 1 <= MAX_CELLS);
+        assert(right->cells.size() > 1);
         for (auto idx{1UL}; idx < right->num_cells + 1; ++idx) {
-            right->cells[idx] = right->cells[idx - 1];
+            right->cells[idx] = std::move(right->cells[idx - 1]);
         }
-        right->cells[0] = cells[pos - 1];
+        right->cells[0] = std::move(cells[pos - 1]);
         right->num_cells++;
 
         if (!right->is_leaf()) {
@@ -189,7 +186,7 @@ auto Node::fill_child(size_t pos) -> void {
         auto& left{children[pos]};
         auto& right{children[pos + 1]};
 
-        left->cells[left->num_cells] = cells[pos];
+        left->cells[left->num_cells] = std::move(cells[pos]);
         left->num_cells++;
 
         if (!left->is_leaf()) {
@@ -213,23 +210,23 @@ auto Node::fill_child(size_t pos) -> void {
         assert(left->num_children + right->num_children <= MAX_CHILDREN);
 
         for (auto idx{0UL}; idx < right->num_cells; ++idx) {
-            left->cells[left->num_cells + idx] = right->cells[idx];
+            left->cells[left->num_cells + idx] = std::move(right->cells[idx]);
         }
         left->num_cells += right->num_cells;
 
         if (!left->is_leaf()) {
             for (auto idx{0UL}; idx < right->num_children; ++idx) {
-                left->children[left->num_children + idx] = right->children[idx];
+                left->children[left->num_children + idx] = std::move(right->children[idx]);
             }
             left->num_children += right->num_children;
         }
 
         remove_child(pos + 1);
-        right = nullptr;
+        right.reset();
     }
 }
 
-auto Node::remove(size_t key, bool is_seeking_successor) -> std::shared_ptr<Cell> {
+auto Node::remove(size_t key, bool is_seeking_successor) -> std::unique_ptr<Cell> {
     const auto [pos, found]{search(key)};
 
     Node* next{nullptr};
@@ -238,6 +235,7 @@ auto Node::remove(size_t key, bool is_seeking_successor) -> std::shared_ptr<Cell
         if (is_leaf()) {
             return remove_cell(pos);
         }
+        // NOTE: for internal nodes, remove the in-order successor from the right child
         is_seeking_successor = true;
         next = children[pos + 1].get();
     } else {
@@ -253,10 +251,12 @@ auto Node::remove(size_t key, bool is_seeking_successor) -> std::shared_ptr<Cell
     }
 
     // continue traversing
-    auto removed_cell{next->remove(key, is_seeking_successor)};
+    auto removed{next->remove(key, is_seeking_successor)};
 
     if (found && is_seeking_successor) {
-        cells[pos] = removed_cell;
+        auto original = std::make_unique<Cell>(*cells[pos]);
+        cells[pos] = std::move(removed);
+        removed = std::move(original);
     }
 
     if (next->num_cells < MIN_CELLS) {
@@ -267,7 +267,7 @@ auto Node::remove(size_t key, bool is_seeking_successor) -> std::shared_ptr<Cell
         }
     }
 
-    return removed_cell;
+    return removed;
 }
 
 auto BTree::show() const -> void {
@@ -279,33 +279,33 @@ auto BTree::show() const -> void {
 }
 
 auto BTree::find(size_t key) const -> std::optional<int> {
-    auto curr{root};
-    while (curr) {
-        const auto& [pos, found]{curr->search(key)};
+    auto* curr{root.get()};
+    while (curr != nullptr) {
+        const auto [pos, found]{curr->search(key)};
         if (found) {
             return curr->cells[pos]->value;
         }
-        curr = curr->children[pos];
+        curr = curr->children[pos].get();
     }
     return std::nullopt;
 }
 
 auto BTree::split_root() -> void {
-    auto new_root{std::make_shared<Node>()};
+    auto new_root{std::make_unique<Node>()};
     auto [cell, node]{root->split()};
 
-    new_root->insert_cell(0, cell);
-    new_root->insert_child(0, root);
-    new_root->insert_child(1, node);
+    new_root->insert_cell(0, std::move(cell));
+    new_root->insert_child(0, std::move(root));
+    new_root->insert_child(1, std::move(node));
 
-    root = new_root;
+    root = std::move(new_root);
 }
 
 auto BTree::insert(size_t key, int value) -> void {
     auto cell{Cell{.key = key, .value = value}};
 
     if (!root) {
-        root = std::make_shared<Node>();
+        root = std::make_unique<Node>();
     }
 
     if (root->num_cells >= MAX_CELLS) {
@@ -316,21 +316,21 @@ auto BTree::insert(size_t key, int value) -> void {
 }
 
 auto BTree::remove(size_t key) -> bool {
-    if (root == nullptr) {
+    if (!root) {
         return false;
     }
 
-    auto removed_cell{root->remove(key, false)};
+    auto removed{root->remove(key, false)};
 
     if (root->num_cells == 0) {
         if (root->is_leaf()) {
-            root = nullptr;
+            root.reset();
         } else if (root->num_children == 1) {
-            root = root->children[0];
+            root = std::move(root->children[0]);
         } else {
             assert(false && "root has multiple children but no keys");
         }
     }
 
-    return removed_cell != nullptr;
+    return removed != nullptr;
 }
