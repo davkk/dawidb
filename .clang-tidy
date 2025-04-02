@@ -15,6 +15,7 @@ Checks: >
   -readability-identifier-length,
   -readability-magic-numbers,
   -readability-math-missing-parentheses,
+  -readability-function-cognitive-complexity,
   google-*,
   cppcoreguidelines-*,
   -cppcoreguidelines-avoid-c-arrays,

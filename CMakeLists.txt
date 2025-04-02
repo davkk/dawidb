@@ -6,7 +6,7 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(CMAKE_CXX_FLAGS_INIT
-    "-stdlib=libc++ -fno-exceptions -Wall -Wshadow -pedantic -Wsign-conversion"
+    "-stdlib=libc++ -g -fno-exceptions -Wall -Wshadow -pedantic -Wsign-conversion"
 )
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)

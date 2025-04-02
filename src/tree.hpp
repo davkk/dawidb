@@ -30,6 +30,10 @@ struct Node {
     auto insert_child(size_t pos, std::shared_ptr<Node> node) -> void;
     auto insert(Cell& cell) -> bool;
     auto split() -> std::pair<std::shared_ptr<Cell>, std::shared_ptr<Node>>;
+    auto remove_cell(size_t pos) -> std::shared_ptr<Cell>;
+    auto remove_child(size_t pos) -> std::shared_ptr<Node>;
+    auto fill_child(size_t pos) -> void;
+    auto remove(size_t key, bool is_seeking_successor) -> std::shared_ptr<Cell>;
 };
 
 struct BTree {
@@ -39,4 +43,5 @@ struct BTree {
     auto find(size_t key) const -> std::optional<int>;
     auto split_root() -> void;
     auto insert(size_t key, int value) -> void;
+    auto remove(size_t key) -> bool;
 };
