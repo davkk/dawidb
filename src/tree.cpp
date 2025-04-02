@@ -1,7 +1,6 @@
 #include "tree.hpp"
 
 #include <cassert>
-#include <ranges>
 #include <utility>
 
 auto Node::show(size_t level) const -> void {
@@ -114,15 +113,19 @@ auto Node::split() -> std::pair<std::shared_ptr<Cell>, std::shared_ptr<Node>> {
 
     auto new_node{std::make_shared<Node>()};
 
-    // FIXME: replace with for loop
-    std::ranges::copy(cells | std::views::drop(mid + 1), new_node->cells.begin());
-    new_node->num_cells = num_cells - mid - 1;
+    new_node->num_cells = num_cells - (mid + 1);
+    assert(new_node->num_cells >= 0);
+    for (auto idx{0UL}; idx < new_node->num_cells; ++idx) {
+        new_node->cells[idx] = cells[idx + (mid + 1)];
+    }
     num_cells = mid;
 
     if (!is_leaf()) {
-        // FIXME: replace with for loop
-        std::ranges::copy(children | std::views::drop(mid + 1), new_node->children.begin());
-        new_node->num_children = num_children - mid - 1;
+        new_node->num_children = num_children - (mid + 1);
+        assert(new_node->num_children >= 0);
+        for (auto idx{0UL}; idx < new_node->num_children; ++idx) {
+            new_node->children[idx] = children[idx + (mid + 1)];
+        }
         num_children = mid + 1;
     }
 
